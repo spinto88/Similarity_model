@@ -1,0 +1,9 @@
+*so
+*o
+*pyc
+*pdf
+*odp
+*.swp*
+*.~lock*
+*.dat
+nohup.out
