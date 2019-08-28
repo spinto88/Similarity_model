@@ -30,7 +30,20 @@ class Mysys(C.Structure):
 
         return None
 
-    def set_initial_state(self, f, fraction_of_zeros):
+    def set_uniform_initial_state(self):
+
+        corr_matrix = np.zeros([self.n, self.n], dtype = np.float)
+        for i in range(self.n):
+            for j in range(i+1, self.n):
+                corr_matrix[i,j] = np.random.random() * 0.5
+
+        corr_matrix += corr_matrix.T
+
+	self.corr = (self.n * C.POINTER(C.c_double))()
+        for i in range(self.n):
+            self.corr[i] = ((self.n) * C.c_double)(*corr_matrix[i])
+
+    def set_axelrod_initial_state(self, f, fraction_of_zeros):
 
         # Calculate q from the fraction of zeros
         q = np.int(np.round((1 - fraction_of_zeros**(1.00 / f))**(-1)))
@@ -78,7 +91,7 @@ class Mysys(C.Structure):
         total_links = int(self.n * (self.n-1) * 0.5)
         for i in range(corr_matrix.shape[0]):
             for j in range(i+1, corr_matrix.shape[1]):
-                if corr_matrix[i,j] == 0.00:
+                if corr_matrix[i,j] <= self.threshold:
                     zero_links += 1
 
         return float(zero_links)/total_links
@@ -113,7 +126,7 @@ class Mysys(C.Structure):
         final_ad_matrix = np.zeros(corr_matrix.shape, dtype = np.int)
         for i in range(self.n):
             for j in range(i+1, self.n):
-                if corr_matrix[i,j] >= self.threshold and self.adjacency_matrix[i,j] == 1:
+                if corr_matrix[i,j] > self.threshold and self.adjacency_matrix[i,j] == 1:
                     final_ad_matrix[i,j] = 1
 
         final_ad_matrix += final_ad_matrix.T
@@ -128,7 +141,7 @@ class Mysys(C.Structure):
         final_ad_matrix = np.zeros(corr_matrix.shape, dtype = np.int)
         for i in range(self.n):
             for j in range(i+1, self.n):
-                if corr_matrix[i,j] >= self.threshold:
+                if corr_matrix[i,j] > self.threshold:
                     final_ad_matrix[i,j] = 1
 
         final_ad_matrix += final_ad_matrix.T
@@ -166,20 +179,6 @@ class Mysys(C.Structure):
 
         return libc.number_of_active_links_simetric(C.byref(self), self.delta, self.threshold)
 
-    def active_links(self):
-
-        A = self.adjacency_matrix
-	C = self.get_corr_matrix()
-
-        links = []
-        for i in range(self.n):
-            for j in range(i+1, self.n):
-                if A[i,j] == 1:
-                    if C[i,j] >= self.threshold and C[i,j] < (1.00 - self.threshold):
-                        links.append((i,j))
-        return links
-
-
     def evol2convergence(self, type_of_interaction):
 
         steps = 0
@@ -202,10 +201,18 @@ class Mysys(C.Structure):
 			    return 0
 	return 1
 
-    def save_data(self, fname):
+    def save_data_axelrod(self, fname):
 
         fp = open(fname, 'a')
         fp.write("{},{},{},".format(self.fraction_of_zeros, *self.axelrod_params))
+        fp.write(','.join([str(s) for s in self.fragments()]))
+        fp.write('\n')
+        fp.close()
+
+    def save_data(self, fname):
+
+        fp = open(fname, 'a')
+        fp.write("{},{},".format(self.delta, self.threshold))
         fp.write(','.join([str(s) for s in self.fragments()]))
         fp.write('\n')
         fp.close()

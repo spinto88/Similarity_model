@@ -4,7 +4,7 @@ int active_condition(mysys *msys, int i, int j, double delta, double threshold)
 {
         if(msys->a[i][j] == 1)
         {
-                if((msys->corr[i][j] >= threshold) && (msys->corr[i][j] < (1.00 - threshold)))
+                if((msys->corr[i][j] > threshold) && (msys->corr[i][j] <= (1.00 - delta)))
                         return 1;
         }
 
