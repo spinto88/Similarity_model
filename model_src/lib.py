@@ -35,8 +35,11 @@ class Mysys(C.Structure):
         state_matrix = np.random.choice([0.00, 1.00], p = [1-p, p], size = [self.n, features])
 
         def similarity(a,b):
-            ans = np.float(a.dot(b)) / ((np.sum(a)*np.sum(b))**0.5)
-            return ans
+            if np.sum(a) != 0.00 and np.sum(b) != 0.00:
+                ans = np.float(a.dot(b)) / ((np.sum(a)*np.sum(b))**0.5)
+                return ans
+            else:
+                return 0.00
 
         corr_matrix = np.zeros([self.n, self.n], dtype = np.float)
         for i in range(self.n):
@@ -238,6 +241,14 @@ class Mysys(C.Structure):
 
         fp = open(fname, 'a')
         fp.write("{},{},{},".format(self.fraction_of_zeros, *self.axelrod_params))
+        fp.write(','.join([str(s) for s in self.fragments_size()]))
+        fp.write('\n')
+        fp.close()
+
+    def save_data(self, fname):
+
+        fp = open(fname, 'a')
+        fp.write("{},{},".format(self.delta, self.threshold))
         fp.write(','.join([str(s) for s in self.fragments_size()]))
         fp.write('\n')
         fp.close()
