@@ -32,21 +32,28 @@ def biggest_fragment(fName):
 import matplotlib.pyplot as plt
 import numpy as np
 
+N = 100
 delta = 0.1
-data = biggest_fragment('Data_Delta{:.2f}.dat'.format(delta))
+degree = N
 
 plt.axes([0.15, 0.15, 0.75, 0.75])
 
-plt.plot([b[0] for b in data], [b[1] for b in data], '-', linewidth = 3, alpha = 0.75)
+data = biggest_fragment('N{}_delta{:.2f}_degree{}.dat'.format(N,delta,degree))
+plt.plot([b[0] for b in data], [b[1] for b in data], '-', linewidth = 3, alpha = 0.75, label = 'N')
 
-for i in range(len(data)):
-    plt.scatter([data[i][0]] * len(data[i][2]), data[i][2], alpha = 0.15, color = 'k')
+degree = 4
+data = biggest_fragment('N{}_delta{:.2f}_degree{}.dat'.format(N,delta,degree))
+plt.plot([b[0] for b in data], [b[1] for b in data], '-', linewidth = 3, alpha = 0.75, label = '4')
+
+#for i in range(len(data)):
+#    plt.scatter([data[i][0]] * len(data[i][2]), data[i][2], alpha = 0.15, color = 'k')
 
 plt.xlabel('Threshold', size = 15)
 plt.ylabel('Biggest fragment', size = 15)
 plt.xticks(size = 12)
 plt.yticks(size = 12)
 plt.grid(True, alpha = 0.25)
+plt.legend(loc = 'best')
 
 #plt.savefig('Colapso_con_el_grado_N{}.png'.format(N), dpi = 300)
 plt.show()

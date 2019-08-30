@@ -30,6 +30,25 @@ class Mysys(C.Structure):
 
         return None
 
+    def set_non_uniform_initial_state(self, p = 0.5, features = 100):
+
+        state_matrix = np.random.choice([0.00, 1.00], p = [1-p, p], size = [self.n, features])
+
+        def similarity(a,b):
+            ans = np.float(a.dot(b)) / ((np.sum(a)*np.sum(b))**0.5)
+            return ans
+
+        corr_matrix = np.zeros([self.n, self.n], dtype = np.float)
+        for i in range(self.n):
+            for j in range(i+1, self.n):
+                corr_matrix[i,j] = similarity(state_matrix[i], state_matrix[j])
+
+        corr_matrix += corr_matrix.T
+
+	self.corr = (self.n * C.POINTER(C.c_double))()
+        for i in range(self.n):
+            self.corr[i] = ((self.n) * C.c_double)(*corr_matrix[i])
+
     def set_uniform_initial_state(self):
 
         corr_matrix = np.zeros([self.n, self.n], dtype = np.float)
@@ -119,8 +138,7 @@ class Mysys(C.Structure):
 
         return None
 
-
-    def fragments(self):
+    def fragments_size(self):
 
         corr_matrix = self.get_corr_matrix()
         final_ad_matrix = np.zeros(corr_matrix.shape, dtype = np.int)
@@ -135,7 +153,22 @@ class Mysys(C.Structure):
 
         return fragments
 
-    def corr_fragments(self):
+    def fragments(self):
+
+        corr_matrix = self.get_corr_matrix()
+        final_ad_matrix = np.zeros(corr_matrix.shape, dtype = np.int)
+        for i in range(self.n):
+            for j in range(i+1, self.n):
+                if corr_matrix[i,j] > self.threshold and self.adjacency_matrix[i,j] == 1:
+                    final_ad_matrix[i,j] = 1
+
+        final_ad_matrix += final_ad_matrix.T
+        final_graph = nx.from_numpy_array(final_ad_matrix)
+        fragments = [x for x in list(nx.connected_components(final_graph))]
+
+        return fragments
+
+    def corr_fragments_size(self):
 
         corr_matrix = self.get_corr_matrix()
         final_ad_matrix = np.zeros(corr_matrix.shape, dtype = np.int)
@@ -205,7 +238,7 @@ class Mysys(C.Structure):
 
         fp = open(fname, 'a')
         fp.write("{},{},{},".format(self.fraction_of_zeros, *self.axelrod_params))
-        fp.write(','.join([str(s) for s in self.fragments()]))
+        fp.write(','.join([str(s) for s in self.fragments_size()]))
         fp.write('\n')
         fp.close()
 
@@ -213,7 +246,7 @@ class Mysys(C.Structure):
 
         fp = open(fname, 'a')
         fp.write("{},{},".format(self.delta, self.threshold))
-        fp.write(','.join([str(s) for s in self.fragments()]))
+        fp.write(','.join([str(s) for s in self.fragments_size()]))
         fp.write('\n')
         fp.close()
 
