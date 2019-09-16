@@ -32,10 +32,10 @@ class Mysys(C.Structure):
 
     def set_non_uniform_initial_state(self, p = 0.5, features = 100):
 
-        state_matrix = np.random.choice([0.00, 1.00], p = [1-p, p], size = [self.n, features])
+        state_matrix = np.random.choice([0, 1], p = [1-p, p], size = [self.n, features])
 
         def similarity(a,b):
-            if np.sum(a) != 0.00 and np.sum(b) != 0.00:
+            if np.sum(a) != 0 and np.sum(b) != 0:
                 ans = np.float(a.dot(b)) / ((np.sum(a)*np.sum(b))**0.5)
                 return ans
             else:
@@ -95,9 +95,14 @@ class Mysys(C.Structure):
 
         return None
 
-    def set_delta(self, delta):
+    def set_delta_up(self, delta):
 
-        self.delta = delta
+        self.delta_up = delta
+        return None
+
+    def set_delta_down(self, delta):
+
+        self.delta_down = delta
         return None
 
     def set_threshold(self, threshold):
@@ -119,35 +124,24 @@ class Mysys(C.Structure):
         return float(zero_links)/total_links
 
     # model dynamics
-    def dynamics(self, type_of_interaction, steps = 1):
+    def dynamics(self, steps = 1):
 
         libc = C.CDLL(os.getcwd() + '/model_src/libc.so')
 
-        if type_of_interaction == 'asimetric':
-       	
-	    libc.dynamics_asimetric.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double, C.c_int]
-            libc.dynamics_asimetric.restype = C.c_int
+        libc.dynamics.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double, C.c_double, C.c_int]
+        libc.dynamics.restype = C.c_int
 
-            libc.dynamics_asimetric(C.byref(self), self.delta, self.threshold, steps)
-
-        elif type_of_interaction == 'simetric':
-
-	    libc.dynamics_simetric.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double, C.c_int]
-            libc.dynamics_simetric.restype = C.c_int
-
-            libc.dynamics_simetric(C.byref(self), self.delta, self.threshold, steps)
-        else:
-            warnings.warn('Invalid type of interaction')
+        libc.dynamics(C.byref(self), self.delta_up, self.delta_down, self.threshold, steps)
 
         return None
 
-    def fragments_size(self):
+    def fragments_size(self, fragment_tau):
 
         corr_matrix = self.get_corr_matrix()
         final_ad_matrix = np.zeros(corr_matrix.shape, dtype = np.int)
         for i in range(self.n):
             for j in range(i+1, self.n):
-                if corr_matrix[i,j] > self.threshold and self.adjacency_matrix[i,j] == 1:
+                if corr_matrix[i,j] > fragment_tau and self.adjacency_matrix[i,j] == 1:
                     final_ad_matrix[i,j] = 1
 
         final_ad_matrix += final_ad_matrix.T
@@ -156,13 +150,13 @@ class Mysys(C.Structure):
 
         return fragments
 
-    def fragments(self):
+    def fragments(self, fragment_tau):
 
         corr_matrix = self.get_corr_matrix()
         final_ad_matrix = np.zeros(corr_matrix.shape, dtype = np.int)
         for i in range(self.n):
             for j in range(i+1, self.n):
-                if corr_matrix[i,j] > self.threshold and self.adjacency_matrix[i,j] == 1:
+                if corr_matrix[i,j] > fragment_tau and self.adjacency_matrix[i,j] == 1:
                     final_ad_matrix[i,j] = 1
 
         final_ad_matrix += final_ad_matrix.T
@@ -171,13 +165,13 @@ class Mysys(C.Structure):
 
         return fragments
 
-    def corr_fragments_size(self):
+    def corr_fragments_size(self, fragment_tau):
 
         corr_matrix = self.get_corr_matrix()
         final_ad_matrix = np.zeros(corr_matrix.shape, dtype = np.int)
         for i in range(self.n):
             for j in range(i+1, self.n):
-                if corr_matrix[i,j] > self.threshold:
+                if corr_matrix[i,j] > fragment_tau:
                     final_ad_matrix[i,j] = 1
 
         final_ad_matrix += final_ad_matrix.T
@@ -210,16 +204,16 @@ class Mysys(C.Structure):
 
         libc = C.CDLL(os.getcwd() + '/model_src/libc.so')
 
-        libc.number_of_active_links_simetric.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double]
-        libc.number_of_active_links_simetric.restype = C.c_int
+        libc.number_of_active_links.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double, C.c_double]
+        libc.number_of_active_links.restype = C.c_int
 
-        return libc.number_of_active_links_simetric(C.byref(self), self.delta, self.threshold)
+        return libc.number_of_active_links(C.byref(self), self.delta_up, self.delta_down, self.threshold)
 
-    def evol2convergence(self, type_of_interaction):
+    def evol2convergence(self):
 
         steps = 0
         while self.number_of_active_links() != 0:
-            self.dynamics(type_of_interaction, 100)
+            self.dynamics(100)
             steps += 100
         
         return steps
@@ -252,15 +246,7 @@ class Mysys(C.Structure):
         fp.write(','.join([str(s) for s in self.fragments_size()]))
         fp.write('\n')
         fp.close()
-
-    def save_data(self, fname):
-
-        fp = open(fname, 'a')
-        fp.write("{},{},".format(self.delta, self.threshold))
-        fp.write(','.join([str(s) for s in self.fragments_size()]))
-        fp.write('\n')
-        fp.close()
-
+    """
     def one_step_dynamics(self, type_of_interaction, i, j):
 
         libc = C.CDLL(os.getcwd() + '/model_src/libc.so')
@@ -280,3 +266,4 @@ class Mysys(C.Structure):
             libc.one_step_simetric(C.byref(self), self.delta, i, j)
 
         return None
+    """

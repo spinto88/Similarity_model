@@ -7,3 +7,6 @@
 *.~lock*
 *.dat
 nohup.out
+*.ipynb*
+prueba*
+init_condition*

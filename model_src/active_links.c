@@ -1,17 +1,17 @@
 #include "active_links.h"
 
-int active_condition(mysys *msys, int i, int j, double delta, double threshold)
+int active_condition(mysys *msys, int i, int j, double delta_up, double delta_down, double threshold)
 {
         if(msys->a[i][j] == 1)
         {
-                if((msys->corr[i][j] > threshold) && (msys->corr[i][j] <= (1.00 - delta)))
+                if(((msys->corr[i][j] > threshold) && (msys->corr[i][j] > delta_down)) && (msys->corr[i][j] < (1.00 - delta_up)))
                         return 1;
         }
 
         return 0;
 }
 
-int number_of_active_links_asimetric(mysys *msys, double delta, double threshold)
+int number_of_active_links(mysys *msys, double delta_up, double delta_down, double threshold)
 {
 	int i,j;
 	int n = msys->n;
@@ -21,7 +21,7 @@ int number_of_active_links_asimetric(mysys *msys, double delta, double threshold
 	{
 		for(j = 0; j < n; j++)
 		{
-			if(active_condition(msys, i, j, delta, threshold))
+			if(active_condition(msys, i, j, delta_up, delta_down, threshold))
 				number_active_links++;
 		}
 	}
@@ -29,7 +29,7 @@ int number_of_active_links_asimetric(mysys *msys, double delta, double threshold
 }
 
 
-int active_links_asimetric(mysys *msys, double delta, double threshold, link *list_active_links)
+int active_links(mysys *msys, double delta_up, double delta_down, double threshold, link *list_active_links)
 {
 	int i, j, k;
 	int n = msys->n;
@@ -39,7 +39,7 @@ int active_links_asimetric(mysys *msys, double delta, double threshold, link *li
 	{
 		for(j = 0; j < n; j++)
 		{
-			if(active_condition(msys, i, j, delta, threshold))
+			if(active_condition(msys, i, j, delta_up, delta_down, threshold))
 			{
 				list_active_links[k].i = i;
 				list_active_links[k].j = j;
@@ -51,42 +51,3 @@ int active_links_asimetric(mysys *msys, double delta, double threshold, link *li
 	return 1;
 }
 
-int number_of_active_links_simetric(mysys *msys, double delta, double threshold)
-{
-	int i,j;
-	int n = msys->n;
-	int number_active_links = 0;
-
-        for(i = 0; i < n; i++)
-	{
-		for(j = i+1; j < n; j++)
-		{
-			if(active_condition(msys, i, j, delta, threshold))
-				number_active_links++;
-		}
-	}
-	return number_active_links;
-}
-
-
-int active_links_simetric(mysys *msys, double delta, double threshold, link *list_active_links)
-{
-	int i, j, k;
-	int n = msys->n;
-
-	k = 0;	
-        for(i = 0; i < n; i++)
-	{
-		for(j = i+1; j < n; j++)
-		{
-			if(active_condition(msys, i, j, delta, threshold))
-			{
-				list_active_links[k].i = i;
-				list_active_links[k].j = j;
-				k++;
-			}
-		}
-	}
-		
-	return 1;
-}

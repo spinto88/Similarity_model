@@ -8,27 +8,34 @@ np.random.seed(seed)
 # --------------------------------------------------- #
 
 n = 100
-type_of_interaction = 'simetric'
- 
+delta_up = 0.1
+threshold = 0.25
+delta_down = 0.00
+
+fragment_tau = 0.5
+
+degree = n
+
 mysys = Mysys(n = n)
 
-for delta in [0.5, 0.25, 0.1, 0.05, 0.01]:
+mysys.set_delta_up(delta_up)
+mysys.set_delta_down(delta_down)
 
-  mysys.set_delta(delta)
+mysys.set_topology('random_regular', degree = degree)
 
-  for degree in [4, n]:
+mysys.set_threshold(threshold)
 
-    mysys.set_topology('random_regular', degree = degree)
+mysys.set_non_uniform_initial_state(p = 0.30)
 
-    for i in range(100):
+print mysys.mean_hom()
 
-        for threshold in np.arange(0.10, 0.51, 0.015):
+#print mysys.fragments_size(fragment_tau)
 
-            mysys.set_threshold(threshold)
 
-            mysys.set_uniform_initial_state()
+mysys.evol2convergence()
 
-            mysys.evol2convergence(type_of_interaction)
+print mysys.mean_hom()
+print mysys.fragments_size(fragment_tau)
 
-            mysys.save_data('N{}_delta{:.2f}_degree{}.dat'.format(n,delta,degree))
+#            mysys.save_data('N{}_delta{:.2f}_degree{}.dat'.format(n,delta,degree))
 

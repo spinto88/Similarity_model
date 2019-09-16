@@ -12,11 +12,9 @@ struct _link
 };
 typedef struct _link link;
 
-int active_condition(mysys *, int, int, double, double);
+int active_condition(mysys *, int, int, double, double, double);
 
-int number_of_active_links_asimetric(mysys *, double, double);
-int active_links_asimetric(mysys *, double, double, link *);
-int number_of_active_links_simetric(mysys *, double, double);
-int active_links_simetric(mysys *, double, double, link *);
+int number_of_active_links(mysys *, double, double, double);
+int active_links(mysys *, double, double, double, link *);
 
 #endif
