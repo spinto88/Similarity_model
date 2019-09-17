@@ -20,13 +20,10 @@ double overlap(double a, double b, double c)
 int dynamics(mysys *msys, double delta_up, double delta_down, double threshold, int steps)
 {
 	int i, j, k;
-	double random;
+	double random = 0.00;
 	int step = 0;
 	int step_n = 0;
-	double aux = 0.00;
-	int n = msys->n;
-	double factor;
-	double proba2interact;
+	double proba2interact = 0.00;
 	int number_active_links = 0;
 	link *list_active_links;
 
@@ -52,64 +49,20 @@ int dynamics(mysys *msys, double delta_up, double delta_down, double threshold, 
 			if(active_condition(msys, i, j, delta_up, delta_down, threshold) == 1)
 			{		
 
-			  random = (double)rand()/RAND_MAX;
+				random = (double)rand()/RAND_MAX;
 
-			  proba2interact = (msys->corr[i][j] - threshold)/(1.00 - threshold);
-
-		          if(random < proba2interact)
-			  {
-				aux = msys->corr[i][j] + delta_up;
-				if(aux >= 1.00)
-					aux = 1.00;	
-				if(aux < 1.00)
-				{
-				        factor = delta_up / (1.00 - msys->corr[i][j]);
-					for(k = 0; k < n; k++)
-					{
-						if((k!=i) && (k!=j))
-						{
-							msys->corr[i][k] += (msys->corr[j][k] - msys->corr[i][k]) * factor;
-							msys->corr[k][i] = msys->corr[i][k];
-						}
-					}
-				}	
-				else if(aux == 1.00)
-				{
-					for(k = 0; k < n; k++)
-					{
-						if((k!=i) && (k!=j))
-						{
-							msys->corr[i][k] = msys->corr[j][k];	
-							msys->corr[k][i] = msys->corr[i][k];	
-						}
-					}
-				}
-				msys->corr[i][j] = aux;
-				msys->corr[j][i] = msys->corr[i][j];
-			  }
-			  else
-			  {
-				if(delta_down != 0.00)
-				{
-					aux = msys->corr[i][j] - delta_down;
-					if(aux >= 0.00)
-					{
-					        factor = delta_down / msys->corr[i][j];
-						for(k = 0; k < n; k++)
-						{
-							if((k!=i) && (k!=j))
-							{
-								msys->corr[i][k] -= overlap(msys->corr[i][j], msys->corr[j][k], msys->corr[i][k]) * factor;
-								msys->corr[k][i] = msys->corr[i][k];
-							}
-						}
-						msys->corr[i][j] = aux;
-						msys->corr[j][i] = msys->corr[i][j];
-					}
+				proba2interact = (msys->corr[i][j] - threshold)/(1.00 - threshold);
+				
+				if(random < proba2interact)
+					increase_similarity(msys, i, j, delta_up);
+			  	else
+			  	{
+					if(delta_down != 0.00)
+						decrease_similarity(msys, i, j, delta_down);
 				}
 			}
-		      }
-		      step_n++;
+
+			step_n++;
 		}
 
 		free(list_active_links);
@@ -121,3 +74,84 @@ int dynamics(mysys *msys, double delta_up, double delta_down, double threshold, 
 	return 1;
 }
 
+int increase_similarity(mysys *msys, int i, int j, double delta_up)
+{
+
+	int k;
+	int n = msys->n;
+	double aux, factor;
+
+	aux = msys->corr[i][j] + delta_up;
+	if(aux >= 1.00)
+		aux = 1.00;	
+	if(aux < 1.00)
+	{
+		factor = delta_up / (1.00 - msys->corr[i][j]);
+		for(k = 0; k < n; k++)
+		{
+			if((k!=i) && (k!=j))
+			{
+				msys->corr[i][k] += (msys->corr[j][k] - msys->corr[i][k]) * factor;
+				msys->corr[k][i] = msys->corr[i][k];
+			}
+		}
+	}	
+	else if(aux == 1.00)
+	{
+		for(k = 0; k < n; k++)
+		{
+			if((k!=i) && (k!=j))
+			{
+				msys->corr[i][k] = msys->corr[j][k];	
+				msys->corr[k][i] = msys->corr[i][k];	
+			}
+		}
+	}
+
+	msys->corr[i][j] = aux;
+	msys->corr[j][i] = msys->corr[i][j];
+
+	return 1;
+}
+
+int decrease_similarity(mysys *msys, int i, int j, double delta_down)
+{
+
+	int k;
+	int n = msys->n;
+	double aux, factor;
+
+	aux = msys->corr[i][j] - delta_down;
+	
+	if(aux < 0.00)
+		aux = 0.00;
+
+	if(aux > 0.00)
+	{
+		factor = delta_down / msys->corr[i][j];
+		for(k = 0; k < n; k++)
+		{
+			if((k!=i) && (k!=j))
+			{
+				msys->corr[i][k] -= overlap(msys->corr[i][j], msys->corr[j][k], msys->corr[i][k]) * factor;
+				msys->corr[k][i] = msys->corr[i][k];
+			}
+		}
+	}
+	else
+	{
+		for(k = 0; k < n; k++)
+		{
+			if((k!=i) && (k!=j))
+			{
+				msys->corr[i][k] -= overlap(msys->corr[i][j], msys->corr[j][k], msys->corr[i][k]);
+				msys->corr[k][i] = msys->corr[i][k];
+			}
+		}
+	}
+
+	msys->corr[i][j] = aux;
+	msys->corr[j][i] = msys->corr[i][j];
+
+	return 1;
+}

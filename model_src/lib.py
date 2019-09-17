@@ -65,10 +65,9 @@ class Mysys(C.Structure):
         for i in range(self.n):
             self.corr[i] = ((self.n) * C.c_double)(*corr_matrix[i])
 
-    def set_axelrod_initial_state(self, f, fraction_of_zeros):
+    def set_axelrod_initial_state(self, f, q):
 
         # Calculate q from the fraction of zeros
-        q = np.int(np.round((1 - fraction_of_zeros**(1.00 / f))**(-1)))
 
         states = [np.random.choice(q,f) for i in range(self.n)]
 
@@ -246,24 +245,33 @@ class Mysys(C.Structure):
         fp.write(','.join([str(s) for s in self.fragments_size()]))
         fp.write('\n')
         fp.close()
-    """
-    def one_step_dynamics(self, type_of_interaction, i, j):
+    
+    def increase_similarity(self, i, j, delta):
 
         libc = C.CDLL(os.getcwd() + '/model_src/libc.so')
 
-        if type_of_interaction == 'asimetric':
-       	
-	    libc.one_step_asimetric.argtypes = [C.POINTER(Mysys), C.c_double, C.c_int, C.c_int]
-            libc.one_step_asimetric.restype = C.c_int
+        libc.increase_similarity.argtypes = [C.POINTER(Mysys), C.c_int, C.c_int, C.c_double]
+        libc.increase_similarity.restype = C.c_int
 
-            libc.one_step_asimetric(C.byref(self), self.delta, i, j)
+        return libc.increase_similarity(C.byref(self), i, j, delta)
 
-        elif type_of_interaction == 'simetric':
+    def decrease_similarity(self, i, j, delta):
 
-	    libc.one_step_simetric.argtypes = [C.POINTER(Mysys), C.c_double, C.c_int, C.c_int]
-            libc.one_step_simetric.restype = C.c_int
+        libc = C.CDLL(os.getcwd() + '/model_src/libc.so')
 
-            libc.one_step_simetric(C.byref(self), self.delta, i, j)
+        libc.decrease_similarity.argtypes = [C.POINTER(Mysys), C.c_int, C.c_int, C.c_double]
+        libc.decrease_similarity.restype = C.c_int
 
-        return None
-    """
+        return libc.decrease_similarity(C.byref(self), i, j, delta)
+
+    def similarities_histogram(self):
+
+        import matplotlib.pyplot as plt
+
+	corr_matrix = self.get_corr_matrix()
+
+	similarities = [corr_matrix[i,j] for i in range(self.n) for j in range(i+1, self.n)]
+
+        plt.hist(similarities, bins = np.arange(-0.05, 1.15, 0.1), density = True)
+
+	plt.show()
