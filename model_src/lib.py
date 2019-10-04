@@ -30,41 +30,6 @@ class Mysys(C.Structure):
 
         return None
 
-    def set_non_uniform_initial_state(self, p = 0.5, features = 100):
-
-        state_matrix = np.random.choice([0, 1], p = [1-p, p], size = [self.n, features])
-
-        def similarity(a,b):
-            if np.sum(a) != 0 and np.sum(b) != 0:
-                ans = np.float(a.dot(b)) / ((np.sum(a)*np.sum(b))**0.5)
-                return ans
-            else:
-                return 0.00
-
-        corr_matrix = np.zeros([self.n, self.n], dtype = np.float)
-        for i in range(self.n):
-            for j in range(i+1, self.n):
-                corr_matrix[i,j] = similarity(state_matrix[i], state_matrix[j])
-
-        corr_matrix += corr_matrix.T
-
-	self.corr = (self.n * C.POINTER(C.c_double))()
-        for i in range(self.n):
-            self.corr[i] = ((self.n) * C.c_double)(*corr_matrix[i])
-
-    def set_uniform_initial_state(self):
-
-        corr_matrix = np.zeros([self.n, self.n], dtype = np.float)
-        for i in range(self.n):
-            for j in range(i+1, self.n):
-                corr_matrix[i,j] = np.random.random() * 0.5
-
-        corr_matrix += corr_matrix.T
-
-	self.corr = (self.n * C.POINTER(C.c_double))()
-        for i in range(self.n):
-            self.corr[i] = ((self.n) * C.c_double)(*corr_matrix[i])
-
     def set_axelrod_initial_state(self, f, q):
 
         # Calculate q from the fraction of zeros
@@ -94,14 +59,9 @@ class Mysys(C.Structure):
 
         return None
 
-    def set_delta_up(self, delta):
+    def set_delta(self, delta):
 
-        self.delta_up = delta
-        return None
-
-    def set_delta_down(self, delta):
-
-        self.delta_down = delta
+        self.delta = delta
         return None
 
     def set_threshold(self, threshold):
@@ -127,10 +87,10 @@ class Mysys(C.Structure):
 
         libc = C.CDLL(os.getcwd() + '/model_src/libc.so')
 
-        libc.dynamics.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double, C.c_double, C.c_int]
+        libc.dynamics.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double, C.c_int]
         libc.dynamics.restype = C.c_int
 
-        libc.dynamics(C.byref(self), self.delta_up, self.delta_down, self.threshold, steps)
+        libc.dynamics(C.byref(self), self.delta, self.threshold, steps)
 
         return None
 
@@ -203,10 +163,20 @@ class Mysys(C.Structure):
 
         libc = C.CDLL(os.getcwd() + '/model_src/libc.so')
 
-        libc.number_of_active_links.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double, C.c_double]
+        libc.number_of_active_links.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double]
         libc.number_of_active_links.restype = C.c_int
 
-        return libc.number_of_active_links(C.byref(self), self.delta_up, self.delta_down, self.threshold)
+        return libc.number_of_active_links(C.byref(self), self.delta, self.threshold)
+
+    def active_links(self):
+
+	ans = []
+        corr_matrix = self.get_corr_matrix()
+        for i in range(corr_matrix.shape[0]):
+            for j in range(i+1, corr_matrix.shape[0]):
+                if (corr_matrix[i,j] > self.threshold) and (corr_matrix[i,j] < 1.00 - self.delta):
+			ans.append((i,j))
+	return ans
 
     def evol2convergence(self):
 
@@ -234,17 +204,10 @@ class Mysys(C.Structure):
 
         fp = open(fname, 'a')
         fp.write("{},{},{},".format(self.fraction_of_zeros, *self.axelrod_params))
-        fp.write(','.join([str(s) for s in self.fragments_size()]))
+        fp.write(','.join([str(s) for s in self.fragments_size(self.threshold)]))
         fp.write('\n')
         fp.close()
 
-    def save_data(self, fname):
-
-        fp = open(fname, 'a')
-        fp.write("{},{},".format(self.delta, self.threshold))
-        fp.write(','.join([str(s) for s in self.fragments_size()]))
-        fp.write('\n')
-        fp.close()
     
     def increase_similarity(self, i, j, delta):
 
@@ -254,15 +217,6 @@ class Mysys(C.Structure):
         libc.increase_similarity.restype = C.c_int
 
         return libc.increase_similarity(C.byref(self), i, j, delta)
-
-    def decrease_similarity(self, i, j, delta):
-
-        libc = C.CDLL(os.getcwd() + '/model_src/libc.so')
-
-        libc.decrease_similarity.argtypes = [C.POINTER(Mysys), C.c_int, C.c_int, C.c_double]
-        libc.decrease_similarity.restype = C.c_int
-
-        return libc.decrease_similarity(C.byref(self), i, j, delta)
 
     def similarities_histogram(self):
 
