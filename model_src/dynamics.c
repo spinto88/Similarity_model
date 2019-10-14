@@ -3,10 +3,8 @@
 int dynamics(mysys *msys, double delta, double threshold, int steps)
 {
 	int i, j, k;
-	double random = 0.00;
 	int step = 0;
 	int step_n = 0;
-	double proba2interact = 0.00;
 	int number_active_links = 0;
 	link *list_active_links;
 
@@ -14,13 +12,13 @@ int dynamics(mysys *msys, double delta, double threshold, int steps)
 	{
 		step_n = 0;
 	        srand(msys->seed);
-		number_active_links = number_of_active_links(msys, delta, threshold);
+		number_active_links = number_of_active_links(msys, threshold);
 		if(number_active_links == 0)
 			break;
 		else
 		{
 			list_active_links = (link *)malloc(sizeof(link) * number_active_links);
-			active_links(msys, delta, threshold, list_active_links);
+			active_links(msys, threshold, list_active_links);
 		}
 			
 		while(step_n < number_active_links)
@@ -29,16 +27,8 @@ int dynamics(mysys *msys, double delta, double threshold, int steps)
 			i = list_active_links[k].i;
 			j = list_active_links[k].j;
 
-			if(active_condition(msys, i, j, delta, threshold) == 1)
-			{		
-
-				random = (double)rand()/RAND_MAX;
-
-				proba2interact = msys->corr[i][j];
-				
-				if(random < proba2interact)
-					increase_similarity(msys, i, j, delta);
-			}
+			if(active_condition(msys, i, j, threshold) == 1)
+				increase_similarity(msys, i, j, msys->corr[i][j]*delta);
 
 			step_n++;
 		}
@@ -54,7 +44,6 @@ int dynamics(mysys *msys, double delta, double threshold, int steps)
 
 int increase_similarity(mysys *msys, int i, int j, double delta)
 {
-
 	int k;
 	int n = msys->n;
 	double aux, factor;
