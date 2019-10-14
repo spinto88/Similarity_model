@@ -163,10 +163,10 @@ class Mysys(C.Structure):
 
         libc = C.CDLL(os.getcwd() + '/model_src/libc.so')
 
-        libc.number_of_active_links.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double]
+        libc.number_of_active_links.argtypes = [C.POINTER(Mysys), C.c_double]
         libc.number_of_active_links.restype = C.c_int
 
-        return libc.number_of_active_links(C.byref(self), self.delta, self.threshold)
+        return libc.number_of_active_links(C.byref(self), self.threshold)
 
     def active_links(self):
 
