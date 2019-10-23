@@ -1,20 +1,19 @@
 from model_src import *
 
 # Random seed
-seed = 123458
+seed = 123451
 # Set the random generator seed
 np.random.seed(seed)
 
 # --------------------------------------------------- #
 
-F = 100
-Q = 100
+F = 5
 
-n = 100
-degree = n
+n = 400
+degree = 4
 
 delta = 1.00/F
-threshold = 0.5 * delta
+threshold = 0.00
 
 mysys = Mysys(n = n)
 
@@ -22,10 +21,23 @@ mysys.set_delta(delta)
 mysys.set_topology('random_regular', degree = degree)
 mysys.set_threshold(threshold)
 
-for Q in range(100, 10001, 15):
+krange = np.logspace(-1, np.log10(n)-0.01, 21)
+q_value = lambda k, delta, n: int((1.00 - (1.00 - float(k)/(n-1))**delta)**(-1))
 
-  mysys.set_axelrod_initial_state(F,Q)
+qrange = [q_value(k, delta, n) for k in krange]
+try:
+    qrange.remove(1)
+except:
+    pass
 
-  mysys.evol2convergence()
+for i in range(len(qrange)): 
 
-  print Q,(n-1)*(1.00-mysys.fraction_of_zeros), np.max(mysys.fragments_size(threshold))
+  for iteration in range(2):
+
+      mysys.set_axelrod_initial_state(F,qrange[i])
+
+      mysys.evol2convergence(simetric = 1)
+
+      print krange[i], np.max(mysys.fragments_size(threshold))
+
+  #mysys.save_data_axelrod('Data.dat')

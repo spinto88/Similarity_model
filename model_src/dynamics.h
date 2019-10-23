@@ -7,7 +7,8 @@
 #include "active_links.h"
 
 int increase_similarity(mysys *, int, int, double);
+int increase_similarity_simetric(mysys *, int, int, double);
 
-int dynamics(mysys *, double, double, int);
+int dynamics(mysys *, double, double, int, int);
 
 #endif

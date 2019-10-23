@@ -83,14 +83,14 @@ class Mysys(C.Structure):
         return float(zero_links)/total_links
 
     # model dynamics
-    def dynamics(self, steps = 1):
+    def dynamics(self, steps = 1, simetric = 0):
 
         libc = C.CDLL(os.getcwd() + '/model_src/libc.so')
 
-        libc.dynamics.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double, C.c_int]
+        libc.dynamics.argtypes = [C.POINTER(Mysys), C.c_double, C.c_double, C.c_int, C.c_int]
         libc.dynamics.restype = C.c_int
 
-        libc.dynamics(C.byref(self), self.delta, self.threshold, steps)
+        libc.dynamics(C.byref(self), self.delta, self.threshold, steps, simetric)
 
         return None
 
@@ -178,11 +178,11 @@ class Mysys(C.Structure):
 			ans.append((i,j))
 	return ans
 
-    def evol2convergence(self):
+    def evol2convergence(self, simetric = 0):
 
         steps = 0
         while self.number_of_active_links() != 0:
-            self.dynamics(100)
+            self.dynamics(100, simetric)
             steps += 100
         
         return steps
